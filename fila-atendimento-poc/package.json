@@ -1,0 +1,16 @@
+{
+  "name": "fila-atendimento-poc",
+  "version": "1.0.0",
+  "description": "POC — Módulo de Fila de Atendimento | Desafio 4.0 Arquitetura de Software | UNDB 2026.1",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
+    "seed": "node scripts/seed.js",
+    "reset": "node scripts/reset.js"
+  },
+  "keywords": ["arquitetura-software", "strategy-pattern", "observer-pattern", "poc"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

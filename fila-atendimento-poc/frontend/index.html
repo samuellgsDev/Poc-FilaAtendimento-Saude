@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fila de Atendimento — UPA Digital | São Luís/MA</title>
+  <meta name="description" content="POC do Módulo de Fila de Atendimento da Plataforma de Saúde Digital de São Luís/MA. Demonstra Strategy e Observer Patterns." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       HEADER
+  ═══════════════════════════════════════════════════════════ -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="brand-icon">🏥</div>
+        <div>
+          <h1 class="brand-title">Fila de Atendimento</h1>
+          <p class="brand-subtitle">UPA Digital · São Luís / MA</p>
+        </div>
+      </div>
+
+      <div class="header-badges">
+        <span class="badge badge-pattern" title="Strategy Pattern ativo">Strategy</span>
+        <span class="badge badge-pattern" title="Observer Pattern ativo">Observer</span>
+        <div class="sse-indicator" id="sse-status">
+          <span class="sse-dot" id="sse-dot"></span>
+          <span id="sse-label">Conectando...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PAINEL DE CHAMADA (destaque máximo)
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="painel-chamada" id="painel-chamada" aria-live="polite" aria-label="Paciente sendo atendido">
+    <div class="painel-chamada-inner">
+      <div class="painel-chamada-idle" id="painel-idle">
+        <div class="painel-idle-icon">📋</div>
+        <p>Aguardando chamada de paciente</p>
+      </div>
+      <div class="painel-chamada-ativo" id="painel-ativo" hidden>
+        <div class="painel-label">🔔 PACIENTE CHAMADO</div>
+        <div class="painel-nome" id="painel-nome">—</div>
+        <div class="painel-info">
+          <span class="painel-risco-badge" id="painel-risco">—</span>
+          <span class="painel-hora" id="painel-hora">—</span>
+        </div>
+        <div class="painel-estrategia" id="painel-estrategia"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MAIN LAYOUT (3 colunas)
+  ═══════════════════════════════════════════════════════════ -->
+  <main class="main-grid">
+
+    <!-- ── Coluna 1: Admissão ───────────────────────────────── -->
+    <section class="card" id="section-admissao" aria-label="Admissão de paciente">
+      <div class="card-header">
+        <h2 class="card-title">
+          <span class="card-icon">➕</span>
+          Admissão de Paciente
+        </h2>
+      </div>
+
+      <form id="form-paciente" class="form-admissao" novalidate>
+        <div class="field-group">
+          <label class="field-label" for="input-nome">Nome completo *</label>
+          <input
+            id="input-nome"
+            type="text"
+            class="field-input"
+            placeholder="Ex: Maria Silva Santos"
+            required
+            autocomplete="name"
+          />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="input-cpf">CPF <span class="field-optional">(opcional)</span></label>
+          <input
+            id="input-cpf"
+            type="text"
+            class="field-input"
+            placeholder="000.000.000-00"
+            maxlength="14"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Nível de Risco (Triagem) *</label>
+          <div class="risco-selector" role="radiogroup" aria-label="Nível de risco">
+            <label class="risco-option risco-vermelho" for="risco-vermelho">
+              <input type="radio" id="risco-vermelho" name="nivel_risco" value="VERMELHO" />
+              <span class="risco-icon">🔴</span>
+              <span class="risco-nome">Vermelho</span>
+              <span class="risco-desc">Emergência</span>
+            </label>
+            <label class="risco-option risco-amarelo" for="risco-amarelo">
+              <input type="radio" id="risco-amarelo" name="nivel_risco" value="AMARELO" />
+              <span class="risco-icon">🟡</span>
+              <span class="risco-nome">Amarelo</span>
+              <span class="risco-desc">Urgência</span>
+            </label>
+            <label class="risco-option risco-verde" for="risco-verde">
+              <input type="radio" id="risco-verde" name="nivel_risco" value="VERDE" checked />
+              <span class="risco-icon">🟢</span>
+              <span class="risco-nome">Verde</span>
+              <span class="risco-desc">Pouco urgente</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="input-motivo">Motivo da visita <span class="field-optional">(opcional)</span></label>
+          <input
+            id="input-motivo"
+            type="text"
+            class="field-input"
+            placeholder="Ex: Dor no peito, febre alta..."
+          />
+        </div>
+
+        <button id="btn-admitir" type="submit" class="btn btn-primary btn-block">
+          <span class="btn-icon">➕</span>
+          Admitir na Fila
+        </button>
+
+        <div id="form-feedback" class="form-feedback" hidden></div>
+      </form>
+
+      <!-- ── Controle de Estratégia (Strategy Pattern) ──── -->
+      <div class="strategy-control">
+        <h3 class="strategy-title">
+          <span>⚡</span>
+          Estratégia de Priorização
+          <span class="badge badge-pattern small">Strategy Pattern</span>
+        </h3>
+        <p class="strategy-desc">Troca o algoritmo de ordenação em runtime, sem modificar o FilaService.</p>
+        <div class="strategy-buttons">
+          <button
+            id="btn-estrategia-risco"
+            class="btn btn-strategy btn-strategy-active"
+            data-estrategia="risco"
+            aria-pressed="true"
+          >
+            🏥 Por Risco Clínico
+          </button>
+          <button
+            id="btn-estrategia-tempo"
+            class="btn btn-strategy"
+            data-estrategia="tempo"
+            aria-pressed="false"
+          >
+            ⏱ Por Tempo (FIFO)
+          </button>
+        </div>
+        <p class="strategy-ativa" id="strategy-ativa-label">Ativa: Priorização por Risco Clínico (Manchester)</p>
+      </div>
+    </section>
+
+    <!-- ── Coluna 2: Fila de Espera ─────────────────────── -->
+    <section class="card" id="section-fila" aria-label="Fila de espera">
+      <div class="card-header">
+        <h2 class="card-title">
+          <span class="card-icon">👥</span>
+          Fila de Espera
+        </h2>
+        <div class="card-header-actions">
+          <span class="badge-count" id="count-fila">0</span>
+          <button id="btn-chamar" class="btn btn-danger" disabled>
+            <span class="btn-icon">🔔</span>
+            Chamar Próximo
+          </button>
+        </div>
+      </div>
+
+      <div class="fila-lista" id="fila-lista" aria-label="Lista de pacientes aguardando" aria-live="polite">
+        <div class="fila-vazia" id="fila-vazia">
+          <div class="fila-vazia-icon">🏥</div>
+          <p>Nenhum paciente na fila</p>
+          <p class="fila-vazia-hint">Admita um paciente para começar</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Coluna 3: Log de Eventos (Observer Pattern) ─── -->
+    <section class="card" id="section-eventos" aria-label="Log de eventos em tempo real">
+      <div class="card-header">
+        <h2 class="card-title">
+          <span class="card-icon">📡</span>
+          Eventos em Tempo Real
+          <span class="badge badge-pattern small">Observer Pattern</span>
+        </h2>
+        <button id="btn-limpar-log" class="btn btn-ghost btn-sm">Limpar</button>
+      </div>
+
+      <div class="log-container" id="log-eventos" aria-label="Log de eventos SSE" aria-live="polite">
+        <div class="log-vazio">
+          <p>Aguardando eventos via SSE...</p>
+          <p class="log-vazio-hint">EventBus → NotificacaoObserver → SSE</p>
+        </div>
+      </div>
+
+      <!-- Arquitetura visual -->
+      <div class="arch-diagram">
+        <div class="arch-node arch-service">FilaService</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node arch-bus">EventBus</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node arch-obs">NotificacaoObserver</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node arch-sse">SSE</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════════════════════════ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <span>POC — Módulo de Fila de Atendimento · Desafio 4.0 · UNDB 2026.1</span>
+      <span class="footer-stack">Node.js · Express · SQLite · SSE</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
