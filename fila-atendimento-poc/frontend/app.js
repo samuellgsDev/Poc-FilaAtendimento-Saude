@@ -294,11 +294,14 @@ function exibirPainelChamada(paciente, estrategia) {
   const iconMap = { VERMELHO: '🔴', AMARELO: '🟡', VERDE: '🟢' };
   els.painelRisco.textContent = `${iconMap[paciente.nivel_risco] || '⚪'} ${paciente.nivel_risco}`;
 
-  // Efeito visual de chamada
-  document.querySelector('.painel-chamada').classList.add('painel-chamada-flash');
+  // Efeito visual de chamada + classe de risco para borda lateral
+  const painel = document.querySelector('.painel-chamada');
+  painel.classList.remove('risco-ativo-VERMELHO', 'risco-ativo-AMARELO', 'risco-ativo-VERDE');
+  painel.classList.add(`risco-ativo-${paciente.nivel_risco}`);
+  painel.classList.add('painel-chamada-flash');
   setTimeout(() => {
-    document.querySelector('.painel-chamada').classList.remove('painel-chamada-flash');
-  }, 600);
+    painel.classList.remove('painel-chamada-flash');
+  }, 700);
 }
 
 // ═══════════════════════════════════════════════════════════════
